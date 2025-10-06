@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>I Love U Sella - 3D Love Animation</title>
+  <style>
+    body {
+      margin: 0;
+      background: #18122B;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .scene {
+      perspective: 1000px;
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0; left: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+    .love-text {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 2.5rem;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 8px #000, 0 0 20px #e63946;
+      z-index: 10;
+      text-align: center;
+      width: 100vw;
+      user-select: none;
+    }
+    .love-sella {
+      color: #e63946;
+      font-size: 3.2rem;
+      font-family: 'Segoe Script', cursive;
+      text-shadow: 0 2px 12px #e63946, 0 0 30px #fff;
+      margin-top: 0.5em;
+      display: block;
+      letter-spacing: 3px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { text-shadow: 0 2px 12px #e63946, 0 0 30px #fff; }
+      50% { text-shadow: 0 4px 24px #e63946, 0 0 60px #fff; }
+      100% { text-shadow: 0 2px 12px #e63946, 0 0 30px #fff; }
+    }
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 2;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="love-text">
+      </span><br>
+      <span class="love-sella">I love u Sella</span>
+    </div>
+    <canvas id="love3d"></canvas>
+  </div>
+  <script>
+    // 3D Heart Particle Animation
+    const canvas = document.getElementById('love3d');
+    const ctx = canvas.getContext('2d');
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    canvas.width = w;
+    canvas.height = h;
+
+    // Heart parametric function (3D)
+    function heart3D(t, scale=1) {
+      // 3D heart parametric equations
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+      // Add some 3D depth
+      const z = 2 * Math.sin(2*t) + 2 * Math.cos(3*t);
+      return {
+        x: x * scale,
+        y: -y * scale,
+        z: z * scale
+      };
+    }
+
+    // 3D to 2D projection
+    function project3D(x, y, z, angleY, angleX, distance) {
+      // Rotate around Y axis
+      let dx = x * Math.cos(angleY) - z * Math.sin(angleY);
+      let dz = x * Math.sin(angleY) + z * Math.cos(angleY);
+      // Rotate around X axis
+      let dy = y * Math.cos(angleX) - dz * Math.sin(angleX);
+      dz = y * Math.sin(angleX) + dz * Math.cos(angleX);
+      // Perspective projection
+      const perspective = distance / (distance - dz);
+      return {
+        x: dx * perspective,
+        y: dy * perspective
+      };
+    }
+
+    // Generate many hearts in 3D space
+    const hearts = [];
+    const heartCount = 33; // banyak
+    for (let i = 0; i < heartCount; i++) {
+      const t = Math.random() * Math.PI * 2;
+      const scale = 18 + Math.random() * 8;
+      const base = heart3D(t, scale);
+      // Randomly scatter around the main heart
+      hearts.push({
+        baseT: t,
+        scale: scale,
+        x: base.x + (Math.random()-0.5)*60,
+        y: base.y + (Math.random()-0.5)*60,
+        z: base.z + (Math.random()-0.5)*60,
+        color: `rgba(230,57,70,${0.7 + Math.random()*0.3})`,
+        size: 18 + Math.random()*10,
+        float: Math.random()*Math.PI*2
+      });
+    }
+
+    // Main big heart (love merah di belakang)
+    const mainHeart = [];
+    for (let t = 0; t < Math.PI*2; t += 0.07) {
+      const p = heart3D(t, 32);
+      mainHeart.push(p);
+    }
+
+    // Animation
+    let angleY = 0;
+    let angleX = 0.3;
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+
+      // Draw main 3D heart (background, merah)
+      ctx.save();
+      ctx.translate(w/2, h/2+30);
+      ctx.beginPath();
+      for (let i = 0; i < mainHeart.length; i++) {
+        const p = mainHeart[i];
+        const proj = project3D(p.x, p.y, p.z, angleY, angleX, 400);
+        if (i === 0) ctx.moveTo(proj.x, proj.y);
+        else ctx.lineTo(proj.x, proj.y);
+      }
+      ctx.closePath();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = "#e63946";
+      ctx.shadowColor = "#e63946";
+      ctx.shadowBlur = 60;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // Draw many 3D hearts (diamna dia 3d dengan baik dan smepurna)
+      for (let i = 0; i < hearts.length; i++) {
+        const heart = hearts[i];
+        // Animate floating
+        const floatZ = Math.sin(Date.now()/900 + heart.float + i)*12;
+        const proj = project3D(
+          heart.x,
+          heart.y,
+          heart.z + floatZ,
+          angleY + Math.sin(Date.now()/2000 + i)*0.1,
+          angleX + Math.cos(Date.now()/1800 + i)*0.1,
+          400
+        );
+        ctx.save();
+        ctx.translate(w/2, h/2+30);
+        ctx.beginPath();
+        for (let t = 0; t < Math.PI*2; t += 0.18) {
+          const p = heart3D(t, heart.size/2.2);
+          const p2d = project3D(
+            p.x, p.y, p.z,
+            angleY + Math.sin(Date.now()/2000 + i)*0.1,
+            angleX + Math.cos(Date.now()/1800 + i)*0.1,
+            400
+          );
+          if (t === 0) ctx.moveTo(proj.x + p2d.x, proj.y + p2d.y);
+          else ctx.lineTo(proj.x + p2d.x, proj.y + p2d.y);
+        }
+        ctx.closePath();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = heart.color;
+        ctx.shadowColor = "#e63946";
+        ctx.shadowBlur = 16;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+
+      // Animate rotation
+      angleY += 0.003;
+      angleX += Math.sin(Date.now()/3000)*0.0007;
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    // Responsive
+    window.addEventListener('resize', () => {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w;
+      canvas.height = h;
+    });
+  </script>
+</body>
+</html>
